@@ -1,0 +1,78 @@
+
+body {
+  margin: 0;
+  font-family: 'Gmarket Sans', Arial, sans-serif;
+  background: #0e0e0e;
+  color: #f5f5f5;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 40px;
+  background: #111;
+}
+
+header .logo {
+  color: gold;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+nav a {
+  margin-left: 20px;
+  color: #ddd;
+  text-decoration: none;
+}
+
+.hero {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.hero h1 {
+  color: gold;
+  font-size: 48px;
+}
+
+section {
+  padding: 60px 40px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.card .name {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.card .tier {
+  color: gold;
+  font-size: 14px;
+}
+
+.card a {
+  display: inline-block;
+  margin-top: 8px;
+  color: #0af;
+  text-decoration: none;
+}
+
+footer {
+  background: #111;
+  text-align: center;
+  padding: 30px 10px;
+  font-size: 13px;
+  color: #777;
+}
