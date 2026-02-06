@@ -534,3 +534,93 @@ code{
   .grid{ grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
   .preview{ width: 280px; }
 }
+
+/* ===== Added: Home hero & Community ===== */
+.home-hero{
+  min-height: calc(100vh - 64px);
+  display:flex;
+  flex-direction: column;
+  align-items:center;
+  justify-content:center;
+  padding: 40px 18px 60px;
+  gap: 14px;
+}
+.home-logo-wrap{ width: 220px; height: 220px; position: relative; }
+.home-logo{
+  width: 220px; height: 220px; border-radius: 28px; object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 26px 70px rgba(0,0,0,0.62);
+}
+.home-glow{
+  position:absolute; inset:-40px;
+  background: radial-gradient(circle at 50% 35%, rgba(216,177,78,0.42), transparent 62%);
+  filter: blur(10px); opacity: 0.85; z-index:-1;
+}
+.home-title{
+  font-size: 34px; font-weight: 900;
+  background: linear-gradient(180deg, rgba(240,208,122,0.95), rgba(216,177,78,0.92));
+  -webkit-background-clip:text; background-clip:text; color: transparent;
+  letter-spacing: 0.02em;
+}
+.home-sub{ color: rgba(255,255,255,0.60); font-weight: 700; }
+
+.community-actions{ display:flex; gap: 8px; flex-wrap: wrap; }
+.community-grid{ display:grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+.community-panel{
+  border-radius: 22px; padding: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+.panel-head{ display:flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.panel-title{
+  font-weight: 900; font-size: 14px;
+  background: linear-gradient(180deg, rgba(240,208,122,0.95), rgba(216,177,78,0.92));
+  -webkit-background-clip:text; background-clip:text; color: transparent;
+}
+.panel-sub{ color: rgba(255,255,255,0.60); font-weight: 800; font-size: 12px; }
+
+.post-list{ display:flex; flex-direction: column; gap: 10px; }
+.post-item{
+  padding: 12px 12px; border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  cursor:pointer;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+.post-item:hover{ transform: translateY(-2px); border-color: rgba(216,177,78,0.26); background: rgba(255,255,255,0.06); }
+.post-title{ font-weight: 900; color: rgba(255,255,255,0.88); margin: 0 0 6px; font-size: 14px; }
+.post-meta{ display:flex; gap: 10px; flex-wrap: wrap; color: rgba(255,255,255,0.55); font-weight: 800; font-size: 12px; }
+
+.post-detail h3{ margin: 0 0 8px; font-size: 18px; font-weight: 900; }
+.post-detail .pd-meta{ color: rgba(255,255,255,0.60); font-weight: 800; font-size: 12px; margin-bottom: 12px; }
+.post-detail .pd-content{ color: rgba(255,255,255,0.82); font-weight: 700; line-height: 1.65; white-space: pre-wrap; }
+.pd-images{ margin-top: 12px; display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.pd-images img{ width: 100%; height: 140px; object-fit: cover; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); }
+
+.comments{ margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.10); }
+.comment{ padding: 10px 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); margin-top: 8px; }
+.comment-meta{ color: rgba(255,255,255,0.55); font-weight: 800; font-size: 12px; margin-bottom: 6px; }
+.comment-body{ color: rgba(255,255,255,0.82); font-weight: 700; white-space: pre-wrap; line-height: 1.55; }
+
+.field{ display:flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.label{ font-weight: 900; color: rgba(255,255,255,0.78); font-size: 12px; }
+.input, .textarea{
+  width: 100%; border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.90);
+  padding: 12px 12px; font-weight: 700; outline: none;
+}
+.textarea{ min-height: 140px; resize: vertical; }
+.row{ display:flex; gap: 10px; flex-wrap: wrap; }
+.row .btn{ flex: 1; }
+
+.guide{ color: rgba(255,255,255,0.78); font-weight: 700; line-height: 1.65; }
+.guide-note{ margin-top: 10px; color: rgba(255,255,255,0.56); font-weight: 800; }
+
+@media (max-width: 980px){ .community-grid{ grid-template-columns: 1fr; } }
+@media (max-width: 560px){
+  .home-logo-wrap{ width: 170px; height: 170px; }
+  .home-logo{ width: 170px; height: 170px; border-radius: 22px; }
+}

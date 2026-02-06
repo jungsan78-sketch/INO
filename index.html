@@ -27,7 +27,6 @@
   </header>
 
   <main>
-    <!-- HOME : 로고만 멋있게 -->
     <section id="tab-home" class="tab tab-active">
       <div class="home-hero">
         <div class="home-logo-wrap" aria-hidden="true">
@@ -39,7 +38,6 @@
       </div>
     </section>
 
-    <!-- MEMBERS -->
     <section id="tab-members" class="tab">
       <div class="section">
         <div class="section-head">
@@ -64,25 +62,47 @@
       </div>
     </section>
 
-    <!-- COMMUNITY (placeholder) -->
     <section id="tab-community" class="tab">
       <div class="section">
         <div class="section-head">
           <div>
             <h2 class="section-title">커뮤니티</h2>
-            <p class="section-desc">글 작성/댓글/이미지 업로드 기능은 2단계(백엔드/DB)에서 구현 가능합니다.</p>
+            <p class="section-desc">글 작성 · 댓글 · 이미지 업로드 (Supabase 연동)</p>
+          </div>
+          <div class="community-actions">
+            <button class="btn btn-ghost" id="btnLogin">로그인</button>
+            <button class="btn btn-ghost" id="btnLogout" style="display:none;">로그아웃</button>
+            <button class="btn btn-primary" id="btnNewPost">글쓰기</button>
           </div>
         </div>
 
-        <div class="community-card">
-          <h3>현재 템플릿 상태</h3>
-          <p>지금 ZIP은 “디자인 + 조직도 + LIVE 미리보기”까지 포함된 1차 버전입니다.</p>
-          <ul>
-            <li>✅ 글 목록/글쓰기/댓글/이미지 업로드: 구현 가능 (DB/스토리지/로그인 필요)</li>
-            <li>✅ Vercel + Supabase(추천) / Firebase로 빠르게 구축 가능</li>
-          </ul>
-          <p class="community-note">원하면 내가 바로 “2단계 커뮤니티 기능 설계 + 코드”까지 이어서 해줄게.</p>
+        <div class="community-grid">
+          <div class="community-panel">
+            <div class="panel-head">
+              <div class="panel-title">글 목록</div>
+              <div class="panel-sub" id="authState">로그인 필요 (글쓰기/댓글)</div>
+            </div>
+            <div class="post-list" id="postList"></div>
+          </div>
+
+          <div class="community-panel">
+            <div class="panel-head">
+              <div class="panel-title">안내</div>
+              <div class="panel-sub">초기 설정 1회만 하면 바로 동작합니다.</div>
+            </div>
+            <div class="guide">
+              <ol>
+                <li><code>config.js</code>에 Supabase URL / anon key 입력</li>
+                <li>Supabase에서 <code>supabase/schema.sql</code> 실행</li>
+                <li>Storage 버킷 <b>community-images</b> 생성(공개 bucket)</li>
+              </ol>
+              <div class="guide-note">
+                * 기본값: <b>이메일 매직링크 로그인</b>
+              </div>
+            </div>
+          </div>
         </div>
+
       </div>
     </section>
   </main>
@@ -94,7 +114,6 @@
     </div>
   </footer>
 
-  <!-- Hover Preview -->
   <div class="preview" id="preview" aria-hidden="true">
     <div class="preview-inner">
       <div class="preview-top">
@@ -106,15 +125,15 @@
     </div>
   </div>
 
-  <!-- Modal -->
   <div class="modal" id="modal" aria-hidden="true">
     <div class="modal-backdrop" data-close="1"></div>
-    <div class="modal-card" role="dialog" aria-modal="true" aria-label="멤버 상세">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="모달">
       <button class="modal-close" data-close="1" aria-label="닫기">✕</button>
       <div class="modal-body" id="modalBody"></div>
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="config.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
