@@ -1,30 +1,18 @@
-# INO LABEL STARBOO - 팬 사이트 템플릿 (PRO)
+# INO LABEL STARBOO 팬 사이트 (Vercel 배포용)
 
-## 실행 방법
+## 배포 방법
+1) 이 폴더를 GitHub에 올리기
+2) Vercel에서 Import
+3) 배포 완료
 
-### 1) 그냥 열어보기 (정적)
-- `index.html`을 더블클릭해서 열면 됩니다.
-- 이 방식에서는 브라우저 CORS 때문에 **LIVE 뱃지 자동 표시 / SOOP 프로필 자동 연동**이 제한될 수 있습니다.
-  - 대신 버튼( LIVE 보기 / 방송국 )은 정상 동작합니다.
+## 주요 기능
+- 조직도: LIVE 보기 / 방송국 버튼
+- LIVE 중이면: 카드에 LIVE 표시 + 프로필 아바타에 빨간 점 표시
+- LIVE 중이면: 마우스 올릴 때 썸네일 미리보기 + 시청자수(가능하면) 표시
+- 프로필 사진: 방송국 페이지의 og:image를 자동 연동 (가능하면)
 
-### 2) LIVE 뱃지 + 프로필 자동 연동 (추천)
-Node 서버를 같이 실행하면 자동 연동이 됩니다.
-
-#### (1) Node 설치 후
-터미널에서:
-```bash
-cd server
-npm install
-npm run dev
-```
-
-#### (2) 브라우저에서 열기
-- http://localhost:3000
-
-서버는 아래를 제공합니다:
-- `/api/status?ids=a,b,c` : 멤버들의 `live` 여부 + `profileImage`를 반환합니다.
-
-## 커스터마이징
-- 멤버 수정: `script.js`의 `MEMBERS` 배열
-- 로고 교체: `assets/logo.jpg`
-- 색/효과: `style.css`의 `:root` 변수
+## 참고
+- /api/status는 SOOP 페이지 HTML을 "휴리스틱"으로 파싱합니다.
+  플랫폼 구조가 바뀌면 /api/status.js의 정규식을 조정하면 됩니다.
+- 커뮤니티(글/댓글/이미지 업로드)는 2단계로 구현 가능:
+  - 추천: Vercel + Supabase (DB + Storage + Auth)

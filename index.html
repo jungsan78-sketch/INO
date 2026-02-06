@@ -9,15 +9,15 @@
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="#home" aria-label="홈으로">
+      <a class="brand" href="#" data-tab="home" aria-label="홈으로">
         <img src="assets/logo.jpg" alt="INO LABEL 로고" class="brand-logo" />
         <span class="brand-text">INO LABEL</span>
       </a>
 
-      <nav class="nav">
-        <a class="nav-link" href="#home">홈</a>
-        <a class="nav-link" href="#members">조직도</a>
-        <a class="nav-link" href="#tiers">티어표</a>
+      <nav class="nav" aria-label="메인 메뉴">
+        <button class="nav-link active" data-tab="home">홈</button>
+        <button class="nav-link" data-tab="members">조직도</button>
+        <button class="nav-link" data-tab="community">커뮤니티</button>
       </nav>
 
       <div class="topbar-right">
@@ -27,47 +27,63 @@
   </header>
 
   <main>
-    <section id="home" class="hero">
-      <div class="hero-card">
-        <div class="hero-logo-wrap">
-          <img src="assets/logo.jpg" alt="INO LABEL" class="hero-logo" />
-          <div class="hero-glow"></div>
+    <!-- HOME : 로고만 멋있게 -->
+    <section id="tab-home" class="tab tab-active">
+      <div class="home-hero">
+        <div class="home-logo-wrap" aria-hidden="true">
+          <img src="assets/logo.jpg" alt="" class="home-logo" />
+          <div class="home-glow"></div>
         </div>
-        <h1 class="hero-title">이노레이블 스타부</h1>
-        <p class="hero-sub">이노대 팬 사이트</p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="#members">조직도 보기</a>
-          <a class="btn btn-ghost" href="#tiers">티어표 보기</a>
-        </div>
-        <p class="hero-note">본 사이트는 비공식 팬 사이트입니다.</p>
+        <div class="home-title">이노레이블 스타부</div>
+        <div class="home-sub">이노대 팬 사이트</div>
       </div>
     </section>
 
-    <section id="members" class="section">
-      <div class="section-head">
-        <h2 class="section-title">멤버 조직도</h2>
-        <div class="section-tools">
-          <button class="chip chip-active" data-filter="all">전체</button>
-          <button class="chip" data-filter="운영진">운영진</button>
-          <button class="chip" data-filter="교수">교수</button>
-          <button class="chip" data-filter="학생">학생</button>
+    <!-- MEMBERS -->
+    <section id="tab-members" class="tab">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">멤버 조직도</h2>
+            <p class="section-desc">LIVE 중이면 뱃지 + 미리보기(썸네일/시청자수)가 표시됩니다.</p>
+          </div>
+          <div class="section-tools">
+            <button class="chip chip-active" data-filter="all">전체</button>
+            <button class="chip" data-filter="운영진">운영진</button>
+            <button class="chip" data-filter="교수">교수</button>
+            <button class="chip" data-filter="학생">학생</button>
+          </div>
         </div>
-      </div>
 
-      <div class="grid" id="memberGrid" aria-live="polite"></div>
-      <div class="hint">
-        <span class="dot"></span>
-        LIVE 뱃지는 서버(./server)로 실행할 때 자동 표시됩니다. (정적 호스팅만 하면 OFF)
+        <div class="grid" id="memberGrid" aria-live="polite"></div>
+
+        <div class="hint">
+          <span class="dot"></span>
+          Vercel 배포 시 <code>/api/status</code>로 LIVE/프로필/썸네일을 자동 연동합니다.
+        </div>
       </div>
     </section>
 
-    <section id="tiers" class="section">
-      <div class="section-head">
-        <h2 class="section-title">티어표</h2>
-        <p class="section-desc">갓 · 킹 · 잭 · 2~8티어 · 유스 (한글 표기)</p>
-      </div>
+    <!-- COMMUNITY (placeholder) -->
+    <section id="tab-community" class="tab">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">커뮤니티</h2>
+            <p class="section-desc">글 작성/댓글/이미지 업로드 기능은 2단계(백엔드/DB)에서 구현 가능합니다.</p>
+          </div>
+        </div>
 
-      <div class="tiers" id="tierBlocks"></div>
+        <div class="community-card">
+          <h3>현재 템플릿 상태</h3>
+          <p>지금 ZIP은 “디자인 + 조직도 + LIVE 미리보기”까지 포함된 1차 버전입니다.</p>
+          <ul>
+            <li>✅ 글 목록/글쓰기/댓글/이미지 업로드: 구현 가능 (DB/스토리지/로그인 필요)</li>
+            <li>✅ Vercel + Supabase(추천) / Firebase로 빠르게 구축 가능</li>
+          </ul>
+          <p class="community-note">원하면 내가 바로 “2단계 커뮤니티 기능 설계 + 코드”까지 이어서 해줄게.</p>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -77,6 +93,18 @@
       <p>본 사이트는 이노레이블 스타부 비공식 팬 사이트입니다.</p>
     </div>
   </footer>
+
+  <!-- Hover Preview -->
+  <div class="preview" id="preview" aria-hidden="true">
+    <div class="preview-inner">
+      <div class="preview-top">
+        <span class="preview-live">LIVE</span>
+        <span class="preview-viewers" id="previewViewers">—</span>
+      </div>
+      <img id="previewImg" alt="방송 미리보기" />
+      <div class="preview-title" id="previewTitle"></div>
+    </div>
+  </div>
 
   <!-- Modal -->
   <div class="modal" id="modal" aria-hidden="true">

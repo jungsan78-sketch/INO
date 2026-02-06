@@ -1,7 +1,7 @@
 /**
- * NOTE
- * - 정적 파일만 열면 (file://) CORS 때문에 LIVE/프로필 자동연동이 제한될 수 있어요.
- * - 자동 LIVE 뱃지 + 프로필 이미지를 쓰려면 zip 안의 /server 를 실행해서 http://localhost:3000 에서 열어주세요.
+ * Vercel 배포용:
+ * - /api/status 서버리스 함수가 LIVE/프로필/썸네일/시청자수(가능하면)를 반환합니다.
+ * - SOOP 페이지 구조가 바뀌면, api/status.js의 파싱 로직만 조정하면 됩니다.
  */
 
 const MEMBERS = [
@@ -30,25 +30,24 @@ const MEMBERS = [
   { name: "밤하밍", role: "학생", rank: "학생", tierLabel: "유스", tierSort: 11, soopId: "haeun5513" }
 ];
 
-const API_BASE = ""; // same-origin. when using server, open http://localhost:3000
-
-const grid = document.getElementById("memberGrid");
-const modal = document.getElementById("modal");
-const modalBody = document.getElementById("modalBody");
-
-let activeFilter = "all";
-
 function stationUrl(id){ return `https://www.sooplive.co.kr/station/${id}`; }
 function playUrl(id){ return `https://play.sooplive.co.kr/${id}`; }
 
+const memberGrid = document.getElementById("memberGrid");
+const modal = document.getElementById("modal");
+const modalBody = document.getElementById("modalBody");
+
+const preview = document.getElementById("preview");
+const previewImg = document.getElementById("previewImg");
+const previewTitle = document.getElementById("previewTitle");
+const previewViewers = document.getElementById("previewViewers");
+
+let activeFilter = "all";
+let statusById = {}; // {id: {live, profileImage, thumb, viewers, title}}
+
 function sortKey(m){
-  // 운영진 먼저 -> 교수 -> 학생, 티어는 갓/킹/잭/숫자/유스 순
   const roleOrder = m.role === "운영진" ? 0 : (m.role === "교수" ? 1 : 2);
   return `${roleOrder}-${String(m.tierSort).padStart(2,"0")}-${m.name}`;
-}
-
-function initials(name){
-  return name?.slice(0,2) || "?";
 }
 
 function cardTemplate(m){
@@ -57,12 +56,12 @@ function cardTemplate(m){
       <span class="badge-live" id="live_${m.soopId}">LIVE</span>
       <div class="avatar" aria-hidden="true">
         <img id="img_${m.soopId}" alt="${m.name} 프로필" src="assets/logo.jpg" />
+        <span class="live-dot" id="dot_${m.soopId}"></span>
       </div>
       <div class="name">${m.name}</div>
-      <div class="meta">${m.rank} · ${m.role}</div>
+      <div class="meta">${m.rank}</div>
       <div class="pills">
         <span class="pill2 pill-tier">${m.tierLabel}</span>
-        <span class="pill2">@${m.soopId}</span>
       </div>
       <div class="actions" onclick="event.stopPropagation()">
         <a class="action-btn action-primary" href="${playUrl(m.soopId)}" target="_blank" rel="noopener">LIVE 보기</a>
@@ -73,18 +72,19 @@ function cardTemplate(m){
 }
 
 function render(){
-  grid.innerHTML = "";
+  memberGrid.innerHTML = "";
   const list = MEMBERS
     .filter(m => activeFilter === "all" ? true : m.role === activeFilter)
     .sort((a,b) => sortKey(a).localeCompare(sortKey(b), "ko"));
-
-  grid.insertAdjacentHTML("beforeend", list.map(cardTemplate).join(""));
+  memberGrid.insertAdjacentHTML("beforeend", list.map(cardTemplate).join(""));
   attachCardEvents();
+  hydrateVisible();
 }
 
 function attachCardEvents(){
   [...document.querySelectorAll(".card")].forEach(card => {
     const id = card.getAttribute("data-id");
+
     card.addEventListener("click", () => openModal(id));
     card.addEventListener("keydown", (e) => {
       if(e.key === "Enter" || e.key === " "){
@@ -92,6 +92,11 @@ function attachCardEvents(){
         openModal(id);
       }
     });
+
+    // Hover preview only when LIVE
+    card.addEventListener("mousemove", (e) => onHoverMove(e, id));
+    card.addEventListener("mouseenter", (e) => onHoverEnter(e, id));
+    card.addEventListener("mouseleave", onHoverLeave);
   });
 }
 
@@ -99,15 +104,18 @@ function openModal(soopId){
   const m = MEMBERS.find(x => x.soopId === soopId);
   if(!m) return;
 
-  const imgSrc = document.getElementById(`img_${soopId}`)?.getAttribute("src") || "assets/logo.jpg";
-  const liveOn = document.getElementById(`live_${soopId}`)?.classList.contains("on");
+  const st = statusById[soopId] || {};
+  const imgSrc = st.profileImage || document.getElementById(`img_${soopId}`)?.getAttribute("src") || "assets/logo.jpg";
+  const liveOn = !!st.live;
+  const viewersTxt = st.viewers != null ? `${formatNumber(st.viewers)}명 시청` : "시청자 정보 없음";
 
   modalBody.innerHTML = `
     <div class="modal-hero">
       <div class="modal-avatar"><img src="${imgSrc}" alt="${m.name} 프로필"></div>
       <div>
         <h3 class="modal-title">${m.name} ${liveOn ? '<span style="margin-left:8px; color:#ff6b6b; font-weight:900;">● LIVE</span>' : ''}</h3>
-        <p class="modal-sub">${m.rank} · ${m.role} · ${m.tierLabel} · @${m.soopId}</p>
+        <p class="modal-sub">${m.rank} · ${m.tierLabel}</p>
+        ${liveOn ? `<p class="modal-sub" style="margin-top:6px;">${viewersTxt}</p>` : ""}
         <div class="modal-actions">
           <a class="action-btn action-primary" href="${playUrl(m.soopId)}" target="_blank" rel="noopener">LIVE 보기</a>
           <a class="action-btn" href="${stationUrl(m.soopId)}" target="_blank" rel="noopener">방송국 바로가기</a>
@@ -133,6 +141,26 @@ document.addEventListener("keydown", (e) => {
 });
 document.querySelectorAll("[data-close='1']").forEach(el => el.addEventListener("click", closeModal));
 
+/** Tabs */
+document.querySelectorAll(".nav-link").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const tab = btn.getAttribute("data-tab");
+    document.querySelectorAll(".nav-link").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".tab").forEach(s => s.classList.remove("tab-active"));
+    document.getElementById(`tab-${tab}`).classList.add("tab-active");
+    if(tab === "members") {
+      hydrateVisible();
+    }
+  });
+});
+document.querySelectorAll("[data-tab='home']").forEach(el => {
+  el.addEventListener("click", (e) => {
+    e.preventDefault();
+    document.querySelector('.nav-link[data-tab="home"]').click();
+  });
+});
+
 /** Filter chips */
 document.querySelectorAll(".chip").forEach(chip => {
   chip.addEventListener("click", () => {
@@ -140,61 +168,53 @@ document.querySelectorAll(".chip").forEach(chip => {
     chip.classList.add("chip-active");
     activeFilter = chip.getAttribute("data-filter");
     render();
-    hydrateFromServer(); // refresh live status for visible
   });
 });
 
-/** Tier blocks */
-function renderTiers(){
-  const tiers = [
-    { label: "갓티어", key: "갓티어" },
-    { label: "킹티어", key: "킹티어" },
-    { label: "잭티어", key: "잭티어" },
-    { label: "2티어", key: "2티어" },
-    { label: "3티어", key: "3티어" },
-    { label: "5티어", key: "5티어" },
-    { label: "6티어", key: "6티어" },
-    { label: "7티어", key: "7티어" },
-    { label: "8티어", key: "8티어" },
-    { label: "유스", key: "유스" },
-  ];
-
-  const byTier = {};
-  MEMBERS.forEach(m => {
-    byTier[m.tierLabel] = byTier[m.tierLabel] || [];
-    byTier[m.tierLabel].push(m);
-  });
-
-  const blocks = tiers.map(t => {
-    const list = (byTier[t.key] || []).map(m => `<span class="tier-chip">${m.name}</span>`).join("");
-    return `
-      <div class="tier-block">
-        <h3>${t.label}</h3>
-        <div class="tier-list">${list || '<span class="tier-chip" style="opacity:.6">-</span>'}</div>
-      </div>
-    `;
-  }).join("");
-
-  document.getElementById("tierBlocks").innerHTML = blocks;
+/** Hover Preview */
+function onHoverEnter(e, id){
+  const st = statusById[id];
+  if(!st || !st.live || !st.thumb) return;
+  preview.classList.add("show");
+  preview.setAttribute("aria-hidden", "false");
+  previewImg.src = st.thumb;
+  previewTitle.textContent = st.title || "방송중";
+  previewViewers.textContent = st.viewers != null ? `${formatNumber(st.viewers)}명 시청` : "시청자 정보 없음";
+  onHoverMove(e, id);
 }
 
-/** Server hydration (live badge + profile image) */
-async function hydrateFromServer(){
-  // If server is not running, this will fail silently.
+function onHoverMove(e, id){
+  if(!preview.classList.contains("show")) return;
+  const pad = 16;
+  const x = Math.min(window.innerWidth - 340, e.clientX + pad);
+  const y = Math.min(window.innerHeight - 260, e.clientY + pad);
+  preview.style.transform = `translate(${x}px, ${y}px)`;
+}
+
+function onHoverLeave(){
+  preview.classList.remove("show");
+  preview.setAttribute("aria-hidden", "true");
+}
+
+/** Hydration */
+async function hydrateVisible(){
   const visible = [...document.querySelectorAll(".card")].map(c => c.getAttribute("data-id"));
   if(!visible.length) return;
 
   try{
-    const url = `${API_BASE}/api/status?ids=${encodeURIComponent(visible.join(","))}`;
+    const url = `/api/status?ids=${encodeURIComponent(visible.join(","))}`;
     const res = await fetch(url, { cache: "no-store" });
     if(!res.ok) return;
     const data = await res.json();
 
     (data.items || []).forEach(item => {
+      statusById[item.id] = item;
+
       const liveEl = document.getElementById(`live_${item.id}`);
-      if(liveEl){
-        liveEl.classList.toggle("on", !!item.live);
-      }
+      const dotEl = document.getElementById(`dot_${item.id}`);
+      if(liveEl) liveEl.classList.toggle("on", !!item.live);
+      if(dotEl) dotEl.classList.toggle("on", !!item.live);
+
       const imgEl = document.getElementById(`img_${item.id}`);
       if(imgEl && item.profileImage){
         imgEl.src = item.profileImage;
@@ -203,8 +223,19 @@ async function hydrateFromServer(){
   }catch(_){}
 }
 
+// refresh every 60s when on members tab
+setInterval(() => {
+  const membersTabActive = document.getElementById("tab-members").classList.contains("tab-active");
+  if(membersTabActive) hydrateVisible();
+}, 60_000);
+
+function formatNumber(n){
+  try{
+    return Number(n).toLocaleString("ko-KR");
+  }catch(_){
+    return String(n);
+  }
+}
+
 /** Boot */
 render();
-renderTiers();
-hydrateFromServer();
-setInterval(hydrateFromServer, 60_000);
