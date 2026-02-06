@@ -53,7 +53,27 @@
           </div>
         </div>
 
-        <div class="grid" id="memberGrid" aria-live="polite"></div>
+        <div class="org">
+  <div class="org-row">
+    <div class="org-title">이사장</div>
+    <div class="org-grid org-grid-1" id="grid-chairman"></div>
+  </div>
+
+  <div class="org-row">
+    <div class="org-title">총장 · 부총장</div>
+    <div class="org-grid org-grid-2" id="grid-exec"></div>
+  </div>
+
+  <div class="org-row">
+    <div class="org-title">교수진</div>
+    <div class="org-grid org-grid-3" id="grid-prof"></div>
+  </div>
+
+  <div class="org-row">
+    <div class="org-title">학생</div>
+    <div class="org-grid org-grid-4" id="grid-student"></div>
+  </div>
+</div>
 
         <div class="hint">
           <span class="dot"></span>
@@ -63,74 +83,80 @@
     </section>
 
     <section id="tab-community" class="tab">
-      <div class="section">
-        <div class="section-head">
-          <div>
-            <h2 class="section-title">커뮤니티</h2>
-            <p class="section-desc">이노대 전용 게시판 · 글쓰기 · 댓글 · 이미지 업로드 (Supabase 연동)</p>
+  <div class="section">
+    <div class="fm-hero" id="fmHero">
+      <div class="fm-hero-bg" id="heroBg"></div>
+      <div class="fm-hero-overlay"></div>
+      <div class="fm-hero-inner">
+        <div class="fm-hero-top">
+          <div class="fm-hero-titlebox">
+            <div class="fm-hero-kicker">INNO LABEL</div>
+            <h2 class="fm-hero-title" id="heroTitle">이노레이블 스타부 - 이노대</h2>
+            <div class="fm-hero-sub" id="heroSub">팬 커뮤니티 · 공지 · 소식 · 밈</div>
           </div>
-          <div class="community-actions">
+          <div class="fm-hero-actions">
             <button class="btn btn-ghost" id="btnLogin">로그인</button>
             <button class="btn btn-ghost" id="btnLogout" style="display:none;">로그아웃</button>
             <button class="btn btn-primary" id="btnNewPost">글쓰기</button>
+            <button class="btn btn-ghost" id="btnHeroEdit" style="display:none;">대문 수정</button>
           </div>
         </div>
 
-        <div class="board-toolbar">
-          <div class="board-tabs" id="boardTabs"></div>
-          <div class="board-right">
-            <input class="input board-search" id="boardSearch" placeholder="제목/내용 검색" />
+        <div class="fm-nav">
+          <div class="fm-tabs" id="boardTabs"></div>
+          <div class="fm-right">
+            <input class="input fm-search" id="boardSearch" placeholder="제목/내용 검색" />
             <button class="btn btn-ghost" id="btnSearch">검색</button>
           </div>
         </div>
-
-        <div class="board-wrap">
-          <div class="board-head">
-            <div class="board-title" id="boardTitle">전체</div>
-            <div class="board-sub" id="authState">로그인 필요 (글쓰기/댓글/추천)</div>
-          </div>
-
-          <div class="board-table-wrap">
-            <table class="board-table" aria-label="게시글 목록">
-              <thead>
-                <tr>
-                  <th class="col-no">번호</th>
-                  <th class="col-title">제목</th>
-                  <th class="col-writer">작성자</th>
-                  <th class="col-time">시간</th>
-                  <th class="col-views">조회</th>
-                  <th class="col-up">추천</th>
-                </tr>
-              </thead>
-              <tbody id="postTableBody"></tbody>
-            </table>
-          </div>
-
-          <div class="board-footer">
-            <div class="hint">
-              <span class="dot"></span>
-              인기글은 최근 72시간 기준(추천/조회 점수)으로 노출됩니다.
-            </div>
-          </div>
-        </div>
-
-        <div class="community-panel" style="margin-top:14px;">
-          <div class="panel-head">
-            <div class="panel-title">Supabase 설정</div>
-            <div class="panel-sub">초기 설정 1회만 하면 끝</div>
-          </div>
-          <div class="guide">
-            <ol>
-              <li><code>config.js</code>에 Supabase URL / publishable key 입력</li>
-              <li>Supabase SQL Editor에서 <code>supabase/schema_v2.sql</code> 실행</li>
-              <li>Storage 버킷 <b>community-images</b> 생성(공개 bucket)</li>
-              <li>Authentication → URL Configuration에 <code>https://ino-eight.vercel.app</code> 등록</li>
-            </ol>
-          </div>
-        </div>
-
       </div>
-    </section>
+    </div>
+
+    <div class="fm-board">
+      <div class="fm-board-head">
+        <div class="fm-board-title" id="boardTitle">전체</div>
+        <div class="fm-board-sub" id="authState">로그인 필요 (글쓰기/댓글/추천)</div>
+      </div>
+
+      <div class="fm-table-wrap">
+        <table class="fm-table" aria-label="게시글 목록">
+          <thead>
+            <tr>
+              <th class="col-tag">탭</th>
+              <th class="col-title">제목</th>
+              <th class="col-writer">글쓴이</th>
+              <th class="col-date">날짜</th>
+              <th class="col-views">조회</th>
+              <th class="col-up">추천</th>
+            </tr>
+          </thead>
+          <tbody id="postTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="fm-footer">
+        <div class="hint"><span class="dot"></span> 인기글은 최근 72시간 기준(추천/조회 점수)으로 노출됩니다.</div>
+      </div>
+    </div>
+
+    <div class="community-panel" style="margin-top:14px;">
+      <div class="panel-head">
+        <div class="panel-title">Supabase 설정</div>
+        <div class="panel-sub">초기 설정 1회만 하면 끝</div>
+      </div>
+      <div class="guide">
+        <ol>
+          <li><code>config.js</code>는 GitHub에 유지하세요 (ZIP에서 제외됩니다)</li>
+          <li>Supabase SQL Editor에서 <code>supabase/schema_v3.sql</code> 실행</li>
+          <li>Storage 버킷 <b>community-images</b> 생성(공개 bucket)</li>
+          <li>Authentication → URL Configuration에 <code>https://ino-eight.vercel.app</code> 등록</li>
+        </ol>
+      </div>
+    </div>
+
+  </div>
+</section>
+
   </main>
 
   <footer class="footer">

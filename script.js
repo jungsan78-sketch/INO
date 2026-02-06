@@ -32,7 +32,6 @@ function stationUrl(id){ return `https://www.sooplive.co.kr/station/${id}`; }
 function playUrl(id){ return `https://play.sooplive.co.kr/${id}`; }
 
 /** ===== UI refs (members) ===== */
-const memberGrid = document.getElementById("memberGrid");
 const modal = document.getElementById("modal");
 const modalBody = document.getElementById("modalBody");
 
@@ -41,7 +40,12 @@ const previewImg = document.getElementById("previewImg");
 const previewTitle = document.getElementById("previewTitle");
 const previewViewers = document.getElementById("previewViewers");
 
-let activeFilter = "all";
+const gridChairman = document.getElementById("grid-chairman");
+const gridExec = document.getElementById("grid-exec");
+const gridProf = document.getElementById("grid-prof");
+const gridStudent = document.getElementById("grid-student");
+
+let activeFilter = "all"; // (unused in pyramid layout)
 let statusById = {};
 
 /** ===== Tabs ===== */
@@ -58,14 +62,6 @@ document.querySelectorAll(".nav-link").forEach(btn => {
 });
 
 /** ===== Filters (members) ===== */
-document.querySelectorAll(".chip").forEach(chip => {
-  chip.addEventListener("click", () => {
-    document.querySelectorAll(".chip").forEach(c => c.classList.remove("chip-active"));
-    chip.classList.add("chip-active");
-    activeFilter = chip.getAttribute("data-filter");
-    renderMembers();
-  });
-});
 
 function sortKey(m){
   const roleOrder = m.role === "운영진" ? 0 : (m.role === "교수" ? 1 : 2);
@@ -94,12 +90,23 @@ function cardTemplate(m){
 }
 
 function renderMembers(){
-  if(!memberGrid) return;
-  memberGrid.innerHTML = "";
-  const list = MEMBERS
-    .filter(m => activeFilter === "all" ? true : m.role === activeFilter)
-    .sort((a,b) => sortKey(a).localeCompare(sortKey(b), "ko"));
-  memberGrid.insertAdjacentHTML("beforeend", list.map(cardTemplate).join(""));
+  if(!gridChairman) return;
+
+  const chairman = MEMBERS.filter(m => m.rank === "이사장");
+  const exec = MEMBERS.filter(m => m.rank === "총장" || m.rank === "부총장");
+  const prof = MEMBERS.filter(m => m.rank === "교수");
+  const student = MEMBERS.filter(m => m.rank === "학생");
+
+  // Keep tier-based ordering inside each group
+  exec.sort((a,b) => a.tierSort - b.tierSort);
+  prof.sort((a,b) => a.tierSort - b.tierSort);
+  student.sort((a,b) => a.tierSort - b.tierSort);
+
+  gridChairman.innerHTML = chairman.map(cardTemplate).join("");
+  gridExec.innerHTML = exec.map(cardTemplate).join("");
+  gridProf.innerHTML = prof.map(cardTemplate).join("");
+  gridStudent.innerHTML = student.map(cardTemplate).join("");
+
   attachMemberEvents();
   hydrateVisible();
 }
@@ -210,6 +217,10 @@ const btnLogin = document.getElementById("btnLogin");
 const btnLogout = document.getElementById("btnLogout");
 const btnNewPost = document.getElementById("btnNewPost");
 const boardTabsEl = document.getElementById("boardTabs");
+const heroTitleEl = document.getElementById("heroTitle");
+const heroSubEl = document.getElementById("heroSub");
+const heroBgEl = document.getElementById("heroBg");
+const btnHeroEdit = document.getElementById("btnHeroEdit");
 const boardTitleEl = document.getElementById("boardTitle");
 const postTableBody = document.getElementById("postTableBody");
 const boardSearch = document.getElementById("boardSearch");
@@ -230,12 +241,47 @@ const supaUrl = window.SUPABASE_URL;
 const supaKey = window.SUPABASE_ANON_KEY;
 let supabase = null;
 let sessionUser = null;
+let isAdmin = false;
 
 let activeBoard = "all";
 let activeQuery = "";
 
 function hasConfig(){
   return supaUrl && supaKey && !supaUrl.includes("YOUR_PROJECT") && !supaKey.includes("YOUR_SUPABASE");
+}
+
+async function loadHeroSettings(){
+  if(!supabase){
+    // fallback
+    if(heroBgEl) heroBgEl.style.backgroundImage = `url(assets/logo.jpg)`;
+    return;
+  }
+  try{
+    const { data } = await supabase.from("site_settings").select("key,value").in("key", ["hero_title","hero_sub","hero_image"]);
+    const map = {};
+    (data||[]).forEach(r => map[r.key] = r.value);
+
+    if(heroTitleEl && map.hero_title) heroTitleEl.textContent = map.hero_title;
+    if(heroSubEl && map.hero_sub) heroSubEl.textContent = map.hero_sub;
+
+    const img = map.hero_image || "assets/logo.jpg";
+    if(heroBgEl){
+      const isAsset = img.startsWith("assets/");
+      heroBgEl.style.backgroundImage = `url(${isAsset ? img : img})`;
+    }
+  }catch(_){
+    if(heroBgEl) heroBgEl.style.backgroundImage = `url(assets/logo.jpg)`;
+  }
+}
+
+async function checkAdmin(){
+  isAdmin = false;
+  if(!supabase || !sessionUser) return false;
+  try{
+    const { data, error } = await supabase.from("admins").select("user_id").eq("user_id", sessionUser.id).maybeSingle();
+    if(!error && data?.user_id) isAdmin = true;
+  }catch(_){}
+  return isAdmin;
 }
 
 async function initSupabase(){
@@ -248,30 +294,43 @@ async function initSupabase(){
   supabase = createClient(supaUrl, supaKey);
   const { data: { session } } = await supabase.auth.getSession();
   sessionUser = session?.user || null;
+  await checkAdmin();
   syncAuthUI();
-  supabase.auth.onAuthStateChange((_event, newSession) => {
+  await loadHeroSettings();
+  supabase.auth.onAuthStateChange(async (_event, newSession) => {
     sessionUser = newSession?.user || null;
+    await checkAdmin();
     syncAuthUI();
+    await loadHeroSettings();
     loadBoardPosts();
   });
 }
 
 function syncAuthUI(){
   if(!authState) return;
+
   if(sessionUser){
     authState.textContent = `로그인됨: ${sessionUser.email}`;
     btnLogin.style.display = "none";
     btnLogout.style.display = "inline-flex";
+    btnNewPost.disabled = false;
   }else{
     authState.textContent = "로그인 필요 (글쓰기/댓글/추천)";
     btnLogin.style.display = "inline-flex";
     btnLogout.style.display = "none";
+    btnNewPost.disabled = true;
+  }
+
+  // Hero edit is admin-only
+  if(btnHeroEdit){
+    btnHeroEdit.style.display = (sessionUser && isAdmin) ? "inline-flex" : "none";
   }
 }
 
 btnLogin?.addEventListener("click", () => openAuthModal());
 btnLogout?.addEventListener("click", async () => { if(supabase) await supabase.auth.signOut(); });
 btnNewPost?.addEventListener("click", () => openComposeModal());
+btnHeroEdit?.addEventListener("click", () => openHeroEditModal());
 
 btnSearch?.addEventListener("click", () => {
   activeQuery = boardSearch.value.trim();
@@ -365,12 +424,12 @@ async function loadBoardPosts(){
     return;
   }
 
-  postTableBody.innerHTML = rows.map((p, idx) => `
+  postTableBody.innerHTML = rows.map((p) => `
     <tr class="post-row" data-post="${p.id}">
-      <td class="col-no">${idx+1}</td>
+      <td class="col-tag"><span class="tagpill ${p.is_notice ? "notice":""}">${escapeHtml(p.is_notice ? "공지" : (p.board || "자유"))}</span></td>
       <td class="col-title">${titleCell(p)}</td>
       <td class="col-writer">${writerLabel(p.author_id)}</td>
-      <td class="col-time">${formatShort(p.created_at)}</td>
+      <td class="col-date">${formatShort(p.created_at)}</td>
       <td class="col-views">${formatNumber(p.views || 0)}</td>
       <td class="col-up">${formatNumber(p.upvotes || 0)}</td>
     </tr>
@@ -647,3 +706,74 @@ renderMembers();
 renderBoardTabs();
 initSupabase();
 loadBoardPosts();
+
+
+function openHeroEditModal(){
+  if(!supabase || !sessionUser || !isAdmin){
+    alert("관리자만 수정할 수 있습니다.");
+    return;
+  }
+  modalBody.innerHTML = `
+    <div class="post-detail">
+      <h3>대문 수정</h3>
+      <div class="pd-meta">대문 이미지/문구를 바꾸면 전체 유저에게 즉시 반영됩니다.</div>
+
+      <div class="field">
+        <div class="label">대문 제목</div>
+        <input class="input" id="heroEditTitle" placeholder="대문 제목" />
+      </div>
+
+      <div class="field">
+        <div class="label">대문 설명</div>
+        <input class="input" id="heroEditSub" placeholder="대문 설명" />
+      </div>
+
+      <div class="field">
+        <div class="label">대문 이미지 URL</div>
+        <input class="input" id="heroEditImg" placeholder="https://... 또는 assets/logo.jpg" />
+        <div class="pd-meta" style="margin-top:6px;">권장: 이미지 주소(URL). assets/ 경로도 가능</div>
+      </div>
+
+      <div class="row">
+        <button class="btn btn-primary" id="btnHeroSave">저장</button>
+        <button class="btn btn-ghost" data-close="1">취소</button>
+      </div>
+
+      <div class="pd-meta" id="heroEditMsg" style="margin-top:10px;"></div>
+    </div>
+  `;
+  openModal();
+
+  // Prefill from current
+  document.getElementById("heroEditTitle").value = heroTitleEl?.textContent || "";
+  document.getElementById("heroEditSub").value = heroSubEl?.textContent || "";
+
+  document.getElementById("btnHeroSave").addEventListener("click", async () => {
+    const msg = document.getElementById("heroEditMsg");
+    const title = document.getElementById("heroEditTitle").value.trim();
+    const sub = document.getElementById("heroEditSub").value.trim();
+    const img = document.getElementById("heroEditImg").value.trim();
+
+    msg.textContent = "저장 중...";
+
+    try{
+      const rows = [
+        { key: "hero_title", value: title || "이노레이블 스타부 - 이노대", updated_by: sessionUser.id },
+        { key: "hero_sub", value: sub || "팬 커뮤니티 · 공지 · 소식 · 밈", updated_by: sessionUser.id },
+      ];
+      if(img) rows.push({ key: "hero_image", value: img, updated_by: sessionUser.id });
+
+      // Upsert one by one to keep compatibility
+      for(const r of rows){
+        const { error } = await supabase.from("site_settings").upsert(r, { onConflict: "key" });
+        if(error) throw error;
+      }
+
+      msg.textContent = "저장 완료!";
+      await loadHeroSettings();
+      setTimeout(() => closeModal(), 400);
+    }catch(err){
+      msg.textContent = `실패: ${escapeHtml(err?.message || "unknown")}`;
+    }
+  });
+}

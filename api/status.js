@@ -5,6 +5,31 @@
  * live 판별: broad_no 존재 시에만 true (오판 방지)
  */
 
+function pickTwitter(html){
+  const re = new RegExp(`<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']`, "i");
+  const m = html.match(re);
+  return m ? m[1] : null;
+}
+
+async function fetchStationProfileImage(id){
+  const url = `https://www.sooplive.co.kr/station/${encodeURIComponent(id)}`;
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      "Accept": "text/html,application/xhtml+xml",
+    }
+  });
+  const html = await res.text();
+
+  let img = pickOg(html, "og:image") || pickTwitter(html) || null;
+  if(img && img.startsWith("//")) img = "https:" + img;
+
+  // ignore offline placeholder
+  if(img && img.includes("blind_background.svg")) img = null;
+
+  return img;
+}
+
 function pickOg(html, prop){
   const re = new RegExp(`<meta[^>]+property=["']${prop}["'][^>]+content=["']([^"']+)["']`, "i");
   const m = html.match(re);

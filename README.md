@@ -16,3 +16,13 @@
   플랫폼 구조가 바뀌면 /api/status.js의 정규식을 조정하면 됩니다.
 - 커뮤니티(글/댓글/이미지 업로드)는 2단계로 구현 가능:
   - 추천: Vercel + Supabase (DB + Storage + Auth)
+
+## v3 Patch (FM-style community + Hero + Admin + Pyramid Org)
+
+- Run `supabase/schema_v3.sql` in Supabase SQL Editor.
+- Create Storage bucket: `community-images` (public).
+- Auth URL Configuration: add your Vercel domain.
+- Bootstrap first admin: after logging in, copy your `user_id` in the UI console or Supabase Auth users table, then run:
+  - `insert into public.admins(user_id) values ('YOUR_USER_UUID');`
+
+> Note: `config.js` is intentionally excluded from patch ZIPs.
