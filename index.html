@@ -1,40 +1,91 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>이노레이블 스타부 - 이노대 팬 사이트</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <div class="logo">INO LABEL</div>
-    <nav>
-      <a href="#home">HOME</a>
-      <a href="#members">조직도</a>
-      <a href="#tiers">티어표</a>
-    </nav>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#home" aria-label="홈으로">
+        <img src="assets/logo.jpg" alt="INO LABEL 로고" class="brand-logo" />
+        <span class="brand-text">INO LABEL</span>
+      </a>
+
+      <nav class="nav">
+        <a class="nav-link" href="#home">홈</a>
+        <a class="nav-link" href="#members">조직도</a>
+        <a class="nav-link" href="#tiers">티어표</a>
+      </nav>
+
+      <div class="topbar-right">
+        <div class="pill" title="비공식 팬 사이트">FAN</div>
+      </div>
+    </div>
   </header>
 
-  <section id="home" class="hero">
-    <h1>이노레이블 스타부</h1>
-    <p>이노대 팬 사이트</p>
-  </section>
+  <main>
+    <section id="home" class="hero">
+      <div class="hero-card">
+        <div class="hero-logo-wrap">
+          <img src="assets/logo.jpg" alt="INO LABEL" class="hero-logo" />
+          <div class="hero-glow"></div>
+        </div>
+        <h1 class="hero-title">이노레이블 스타부</h1>
+        <p class="hero-sub">이노대 팬 사이트</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#members">조직도 보기</a>
+          <a class="btn btn-ghost" href="#tiers">티어표 보기</a>
+        </div>
+        <p class="hero-note">본 사이트는 비공식 팬 사이트입니다.</p>
+      </div>
+    </section>
 
-  <section id="members">
-    <h2>멤버 조직도</h2>
-    <div class="grid" id="memberGrid"></div>
-  </section>
+    <section id="members" class="section">
+      <div class="section-head">
+        <h2 class="section-title">멤버 조직도</h2>
+        <div class="section-tools">
+          <button class="chip chip-active" data-filter="all">전체</button>
+          <button class="chip" data-filter="운영진">운영진</button>
+          <button class="chip" data-filter="교수">교수</button>
+          <button class="chip" data-filter="학생">학생</button>
+        </div>
+      </div>
 
-  <section id="tiers">
-    <h2>티어표</h2>
-    <p>갓 · 킹 · 잭 · 2~8티어 · 유스</p>
-  </section>
+      <div class="grid" id="memberGrid" aria-live="polite"></div>
+      <div class="hint">
+        <span class="dot"></span>
+        LIVE 뱃지는 서버(./server)로 실행할 때 자동 표시됩니다. (정적 호스팅만 하면 OFF)
+      </div>
+    </section>
 
-  <footer>
-    <p>© 풍집자. All Rights Reserved.</p>
-    <p>본 사이트는 이노레이블 스타부 비공식 팬 사이트입니다.</p>
+    <section id="tiers" class="section">
+      <div class="section-head">
+        <h2 class="section-title">티어표</h2>
+        <p class="section-desc">갓 · 킹 · 잭 · 2~8티어 · 유스 (한글 표기)</p>
+      </div>
+
+      <div class="tiers" id="tierBlocks"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p>© 풍집자. All Rights Reserved.</p>
+      <p>본 사이트는 이노레이블 스타부 비공식 팬 사이트입니다.</p>
+    </div>
   </footer>
+
+  <!-- Modal -->
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="멤버 상세">
+      <button class="modal-close" data-close="1" aria-label="닫기">✕</button>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
