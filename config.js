@@ -5,4 +5,4 @@
  *   - anon public key
  */
 window.SUPABASE_URL = "https://ilnouzkvmqbdhmpdimhd.supabase.co";
-window.SUPABASE_ANON_KEY = "sb_publishable_CYgnm8q1h0WuNZM7pjvWQQ_X22Emuix";
+window.SUPABASE_ANON_KEY = "sb_publishable_CYgnm8q1h0WuNZM7pjvWQQ_X22EmuixY";

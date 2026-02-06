@@ -1,3 +1,4 @@
+
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 /** ===== SOOP MEMBERS ===== */
@@ -30,7 +31,7 @@ const MEMBERS = [
 function stationUrl(id){ return `https://www.sooplive.co.kr/station/${id}`; }
 function playUrl(id){ return `https://play.sooplive.co.kr/${id}`; }
 
-/** ===== UI refs ===== */
+/** ===== UI refs (members) ===== */
 const memberGrid = document.getElementById("memberGrid");
 const modal = document.getElementById("modal");
 const modalBody = document.getElementById("modalBody");
@@ -52,17 +53,11 @@ document.querySelectorAll(".nav-link").forEach(btn => {
     document.querySelectorAll(".tab").forEach(s => s.classList.remove("tab-active"));
     document.getElementById(`tab-${tab}`).classList.add("tab-active");
     if(tab === "members") hydrateVisible();
-    if(tab === "community") loadPosts();
-  });
-});
-document.querySelectorAll("[data-tab='home']").forEach(el => {
-  el.addEventListener("click", (e) => {
-    e.preventDefault();
-    document.querySelector('.nav-link[data-tab="home"]').click();
+    if(tab === "community") loadBoardPosts();
   });
 });
 
-/** ===== Filters ===== */
+/** ===== Filters (members) ===== */
 document.querySelectorAll(".chip").forEach(chip => {
   chip.addEventListener("click", () => {
     document.querySelectorAll(".chip").forEach(c => c.classList.remove("chip-active"));
@@ -99,6 +94,7 @@ function cardTemplate(m){
 }
 
 function renderMembers(){
+  if(!memberGrid) return;
   memberGrid.innerHTML = "";
   const list = MEMBERS
     .filter(m => activeFilter === "all" ? true : m.role === activeFilter)
@@ -195,7 +191,7 @@ async function hydrateVisible(){
   }catch(_){}
 }
 setInterval(() => {
-  if(document.getElementById("tab-members").classList.contains("tab-active")) hydrateVisible();
+  if(document.getElementById("tab-members")?.classList.contains("tab-active")) hydrateVisible();
 }, 60_000);
 
 function formatNumber(n){
@@ -208,17 +204,35 @@ function closeModal(){ modal.classList.remove("show"); modal.setAttribute("aria-
 modal.addEventListener("click", (e) => { if(e.target?.dataset?.close === "1") closeModal(); });
 document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(); });
 
-/** ===== Supabase Community ===== */
-const postList = document.getElementById("postList");
+/** ===== Supabase Community (Board V2) ===== */
 const authState = document.getElementById("authState");
 const btnLogin = document.getElementById("btnLogin");
 const btnLogout = document.getElementById("btnLogout");
 const btnNewPost = document.getElementById("btnNewPost");
+const boardTabsEl = document.getElementById("boardTabs");
+const boardTitleEl = document.getElementById("boardTitle");
+const postTableBody = document.getElementById("postTableBody");
+const boardSearch = document.getElementById("boardSearch");
+const btnSearch = document.getElementById("btnSearch");
+
+const BOARDS = [
+  { key: "all", label: "전체" },
+  { key: "notice", label: "공지" },
+  { key: "자유", label: "자유" },
+  { key: "학사", label: "학사" },
+  { key: "연구", label: "연구" },
+  { key: "밈", label: "밈" },
+  { key: "소식", label: "소식" },
+  { key: "popular72h", label: "인기글(72h)" }
+];
 
 const supaUrl = window.SUPABASE_URL;
 const supaKey = window.SUPABASE_ANON_KEY;
 let supabase = null;
 let sessionUser = null;
+
+let activeBoard = "all";
+let activeQuery = "";
 
 function hasConfig(){
   return supaUrl && supaKey && !supaUrl.includes("YOUR_PROJECT") && !supaKey.includes("YOUR_SUPABASE");
@@ -226,9 +240,9 @@ function hasConfig(){
 
 async function initSupabase(){
   if(!hasConfig()){
-    authState.textContent = "Supabase 설정 필요 (config.js)";
-    btnLogin.disabled = true;
-    btnNewPost.disabled = true;
+    if(authState) authState.textContent = "Supabase 설정 필요 (config.js)";
+    if(btnLogin) btnLogin.disabled = true;
+    if(btnNewPost) btnNewPost.disabled = true;
     return;
   }
   supabase = createClient(supaUrl, supaKey);
@@ -238,17 +252,18 @@ async function initSupabase(){
   supabase.auth.onAuthStateChange((_event, newSession) => {
     sessionUser = newSession?.user || null;
     syncAuthUI();
-    loadPosts();
+    loadBoardPosts();
   });
 }
 
 function syncAuthUI(){
+  if(!authState) return;
   if(sessionUser){
     authState.textContent = `로그인됨: ${sessionUser.email}`;
     btnLogin.style.display = "none";
     btnLogout.style.display = "inline-flex";
   }else{
-    authState.textContent = "로그인 필요 (글쓰기/댓글)";
+    authState.textContent = "로그인 필요 (글쓰기/댓글/추천)";
     btnLogin.style.display = "inline-flex";
     btnLogout.style.display = "none";
   }
@@ -257,6 +272,114 @@ function syncAuthUI(){
 btnLogin?.addEventListener("click", () => openAuthModal());
 btnLogout?.addEventListener("click", async () => { if(supabase) await supabase.auth.signOut(); });
 btnNewPost?.addEventListener("click", () => openComposeModal());
+
+btnSearch?.addEventListener("click", () => {
+  activeQuery = boardSearch.value.trim();
+  loadBoardPosts();
+});
+boardSearch?.addEventListener("keydown", (e) => {
+  if(e.key === "Enter"){
+    activeQuery = boardSearch.value.trim();
+    loadBoardPosts();
+  }
+});
+
+function renderBoardTabs(){
+  if(!boardTabsEl) return;
+  boardTabsEl.innerHTML = BOARDS.map(b => `
+    <button class="board-tab ${b.key === activeBoard ? "active":""}" data-board="${b.key}">${b.label}</button>
+  `).join("");
+  boardTabsEl.querySelectorAll(".board-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      activeBoard = btn.getAttribute("data-board");
+      boardTabsEl.querySelectorAll(".board-tab").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      const label = BOARDS.find(x => x.key === activeBoard)?.label || "전체";
+      if(boardTitleEl) boardTitleEl.textContent = label;
+      loadBoardPosts();
+    });
+  });
+}
+
+function writerLabel(authorId){
+  if(!authorId) return "익명";
+  return `회원#${String(authorId).slice(0,6)}`;
+}
+
+function titleCell(p){
+  const cc = p.comment_count || 0;
+  const ccBadge = cc ? `<span class="cmt">(${cc})</span>` : "";
+  const noticeBadge = p.is_notice ? `<span class="nt">공지</span>` : "";
+  return `${noticeBadge}<span class="t">${escapeHtml(p.title)}</span>${ccBadge}`;
+}
+
+function score(p){
+  return (Number(p.upvotes||0) * 5) + Number(p.views||0);
+}
+
+async function loadBoardPosts(){
+  if(!postTableBody) return;
+  if(!supabase){
+    postTableBody.innerHTML = `<tr><td colspan="6" class="empty">Supabase 설정 후 게시글이 표시됩니다.</td></tr>`;
+    return;
+  }
+
+  let q = supabase
+    .from("posts")
+    .select("id,title,created_at,author_id,board,views,upvotes,comment_count,is_notice")
+    .order("is_notice", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  if(activeBoard === "notice"){
+    q = q.eq("is_notice", true);
+  }else if(activeBoard === "popular72h"){
+    const since = new Date(Date.now() - 72*60*60*1000).toISOString();
+    q = supabase
+      .from("posts")
+      .select("id,title,created_at,author_id,board,views,upvotes,comment_count,is_notice")
+      .gte("created_at", since)
+      .limit(120); // client sort
+  }else if(activeBoard !== "all"){
+    q = q.eq("board", activeBoard).eq("is_notice", false);
+  }
+
+  if(activeQuery){
+    q = q.or(`title.ilike.%${activeQuery}%,content.ilike.%${activeQuery}%`);
+  }
+
+  const { data, error } = await q;
+
+  if(error){
+    postTableBody.innerHTML = `<tr><td colspan="6" class="empty err">불러오기 실패: ${escapeHtml(error.message)}</td></tr>`;
+    return;
+  }
+
+  let rows = data || [];
+  if(activeBoard === "popular72h"){
+    rows = rows.sort((a,b) => (score(b) - score(a)) || (new Date(b.created_at) - new Date(a.created_at)));
+  }
+
+  if(!rows.length){
+    postTableBody.innerHTML = `<tr><td colspan="6" class="empty">게시글이 없습니다.</td></tr>`;
+    return;
+  }
+
+  postTableBody.innerHTML = rows.map((p, idx) => `
+    <tr class="post-row" data-post="${p.id}">
+      <td class="col-no">${idx+1}</td>
+      <td class="col-title">${titleCell(p)}</td>
+      <td class="col-writer">${writerLabel(p.author_id)}</td>
+      <td class="col-time">${formatShort(p.created_at)}</td>
+      <td class="col-views">${formatNumber(p.views || 0)}</td>
+      <td class="col-up">${formatNumber(p.upvotes || 0)}</td>
+    </tr>
+  `).join("");
+
+  postTableBody.querySelectorAll(".post-row").forEach(tr => {
+    tr.addEventListener("click", () => openPostDetail(tr.getAttribute("data-post")));
+  });
+}
 
 function openAuthModal(){
   modalBody.innerHTML = `
@@ -283,49 +406,18 @@ function openAuthModal(){
     msg.textContent = "링크 전송 중...";
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin }
+      options: { emailRedirectTo: "https://ino-eight.vercel.app" }
     });
     msg.textContent = error ? `실패: ${escapeHtml(error.message)}` : "전송 완료! 이메일에서 링크를 클릭하면 로그인됩니다.";
   });
 }
 
-async function loadPosts(){
-  if(!supabase){
-    postList.innerHTML = `<div style="color:rgba(255,255,255,0.6); font-weight:800;">Supabase 설정 후 글 목록이 표시됩니다.</div>`;
-    return;
-  }
-  const { data, error } = await supabase
-    .from("posts")
-    .select("id,title,created_at,author_id")
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if(error){
-    postList.innerHTML = `<div style="color:rgba(255,90,90,0.9); font-weight:900;">불러오기 실패: ${escapeHtml(error.message)}</div>`;
-    return;
-  }
-  if(!data?.length){
-    postList.innerHTML = `<div style="color:rgba(255,255,255,0.6); font-weight:800;">아직 글이 없습니다.</div>`;
-    return;
-  }
-  postList.innerHTML = data.map(p => `
-    <div class="post-item" data-post="${p.id}">
-      <div class="post-title">${escapeHtml(p.title)}</div>
-      <div class="post-meta">
-        <span>${formatDate(p.created_at)}</span>
-      </div>
-    </div>
-  `).join("");
-
-  document.querySelectorAll(".post-item").forEach(el => {
-    el.addEventListener("click", () => openPostDetail(el.getAttribute("data-post")));
-  });
-}
-
 async function openPostDetail(postId){
+  try{ await supabase.rpc("increment_post_views", { p_post_id: postId }); }catch(_){}
+
   const { data: post, error } = await supabase
     .from("posts")
-    .select("id,title,content,created_at,author_id")
+    .select("id,title,content,created_at,author_id,board,views,upvotes,comment_count,is_notice")
     .eq("id", postId)
     .single();
 
@@ -349,9 +441,23 @@ async function openPostDetail(postId){
 
   modalBody.innerHTML = `
     <div class="post-detail">
+      <div class="post-topline">
+        <div class="post-badges">
+          ${post.is_notice ? `<span class="nt">공지</span>` : ""}
+          <span class="bd">${escapeHtml(post.board || "자유")}</span>
+        </div>
+        <div class="post-actions">
+          <button class="btn btn-ghost" id="btnUpvote">추천</button>
+        </div>
+      </div>
+
       <h3>${escapeHtml(post.title)}</h3>
-      <div class="pd-meta">${formatDate(post.created_at)}</div>
+      <div class="pd-meta">
+        ${writerLabel(post.author_id)} · ${formatDate(post.created_at)} · 조회 ${formatNumber(post.views||0)} · 추천 <span id="upvoteCount">${formatNumber(post.upvotes||0)}</span>
+      </div>
+
       <div class="pd-content">${escapeHtml(post.content || "")}</div>
+
       ${imgs?.length ? `
         <div class="pd-images">
           ${imgs.map(i => `<img src="${i.url}" alt="이미지" loading="lazy">`).join("")}
@@ -363,7 +469,7 @@ async function openPostDetail(postId){
         <div id="commentList">
           ${(comments || []).map(c => `
             <div class="comment">
-              <div class="comment-meta">${formatDate(c.created_at)}</div>
+              <div class="comment-meta">${writerLabel(c.author_id)} · ${formatDate(c.created_at)}</div>
               <div class="comment-body">${escapeHtml(c.content)}</div>
             </div>
           `).join("") || `<div style="color:rgba(255,255,255,0.6); font-weight:800;">댓글이 없습니다.</div>`}
@@ -385,6 +491,21 @@ async function openPostDetail(postId){
   `;
   openModal();
 
+  document.getElementById("btnUpvote").addEventListener("click", async () => {
+    if(!sessionUser){
+      alert("로그인이 필요합니다.");
+      return;
+    }
+    try{
+      const { data, error: e2 } = await supabase.rpc("toggle_post_upvote", { p_post_id: postId });
+      if(e2) throw e2;
+      document.getElementById("upvoteCount").textContent = formatNumber(data);
+      loadBoardPosts();
+    }catch(err){
+      alert(err?.message || "추천 처리 실패");
+    }
+  });
+
   document.getElementById("btnAddComment").addEventListener("click", async () => {
     const msg = document.getElementById("commentMsg");
     if(!sessionUser){ msg.textContent = "로그인이 필요합니다."; return; }
@@ -397,6 +518,7 @@ async function openPostDetail(postId){
     if(e2){ msg.textContent = `실패: ${escapeHtml(e2.message)}`; return; }
     msg.textContent = "등록 완료!";
     await openPostDetail(postId);
+    loadBoardPosts();
   });
 }
 
@@ -406,10 +528,25 @@ function openComposeModal(){
     openModal();
     return;
   }
+  if(!sessionUser){
+    modalBody.innerHTML = `<div class="post-detail"><h3>로그인 필요</h3><div class="pd-meta">글쓰기는 로그인 후 가능합니다.</div></div>`;
+    openModal();
+    return;
+  }
+
+  const boardOptions = BOARDS
+    .filter(b => !["all","notice","popular72h"].includes(b.key))
+    .map(b => `<option value="${b.key}">${b.label}</option>`).join("");
+
   modalBody.innerHTML = `
     <div class="post-detail">
       <h3>글쓰기</h3>
-      <div class="pd-meta">이미지는 최대 8장까지</div>
+      <div class="pd-meta">이노대 전용 게시판</div>
+
+      <div class="field">
+        <div class="label">게시판</div>
+        <select class="input" id="postBoard">${boardOptions}</select>
+      </div>
 
       <div class="field">
         <div class="label">제목</div>
@@ -424,6 +561,7 @@ function openComposeModal(){
       <div class="field">
         <div class="label">이미지 첨부</div>
         <input class="input" id="postImages" type="file" accept="image/*" multiple />
+        <div class="pd-meta" style="margin-top:6px;">이미지는 최대 8장까지</div>
       </div>
 
       <div class="row">
@@ -438,9 +576,9 @@ function openComposeModal(){
 
   document.getElementById("btnSubmitPost").addEventListener("click", async () => {
     const msg = document.getElementById("postMsg");
-    if(!sessionUser){ msg.textContent = "로그인이 필요합니다."; return; }
     const title = document.getElementById("postTitle").value.trim();
     const content = document.getElementById("postContent").value.trim();
+    const board = document.getElementById("postBoard").value;
     const files = document.getElementById("postImages").files;
 
     if(!title){ msg.textContent = "제목을 입력해주세요."; return; }
@@ -448,7 +586,7 @@ function openComposeModal(){
 
     const { data: inserted, error } = await supabase
       .from("posts")
-      .insert({ title, content, author_id: sessionUser.id })
+      .insert({ title, content, board, author_id: sessionUser.id })
       .select("id")
       .single();
 
@@ -479,12 +617,24 @@ function openComposeModal(){
     }
 
     closeModal();
-    await loadPosts();
+    await loadBoardPosts();
   });
 }
 
 function formatDate(iso){
   try{ return new Date(iso).toLocaleString("ko-KR"); }catch{ return iso; }
+}
+function formatShort(iso){
+  try{
+    const d = new Date(iso);
+    const now = Date.now();
+    const diff = now - d.getTime();
+    const h = Math.floor(diff/3600000);
+    if(h < 24) return `${h <= 0 ? 1 : h}시간 전`;
+    const dd = Math.floor(diff/86400000);
+    if(dd < 7) return `${dd}일 전`;
+    return d.toLocaleDateString("ko-KR");
+  }catch{ return ""; }
 }
 function escapeHtml(s){
   return String(s ?? "").replace(/[&<>"']/g, (m) => ({
@@ -494,5 +644,6 @@ function escapeHtml(s){
 
 /** Boot */
 renderMembers();
+renderBoardTabs();
 initSupabase();
-loadPosts();
+loadBoardPosts();

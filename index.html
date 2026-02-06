@@ -67,7 +67,7 @@
         <div class="section-head">
           <div>
             <h2 class="section-title">커뮤니티</h2>
-            <p class="section-desc">글 작성 · 댓글 · 이미지 업로드 (Supabase 연동)</p>
+            <p class="section-desc">이노대 전용 게시판 · 글쓰기 · 댓글 · 이미지 업로드 (Supabase 연동)</p>
           </div>
           <div class="community-actions">
             <button class="btn btn-ghost" id="btnLogin">로그인</button>
@@ -76,30 +76,56 @@
           </div>
         </div>
 
-        <div class="community-grid">
-          <div class="community-panel">
-            <div class="panel-head">
-              <div class="panel-title">글 목록</div>
-              <div class="panel-sub" id="authState">로그인 필요 (글쓰기/댓글)</div>
-            </div>
-            <div class="post-list" id="postList"></div>
+        <div class="board-toolbar">
+          <div class="board-tabs" id="boardTabs"></div>
+          <div class="board-right">
+            <input class="input board-search" id="boardSearch" placeholder="제목/내용 검색" />
+            <button class="btn btn-ghost" id="btnSearch">검색</button>
+          </div>
+        </div>
+
+        <div class="board-wrap">
+          <div class="board-head">
+            <div class="board-title" id="boardTitle">전체</div>
+            <div class="board-sub" id="authState">로그인 필요 (글쓰기/댓글/추천)</div>
           </div>
 
-          <div class="community-panel">
-            <div class="panel-head">
-              <div class="panel-title">안내</div>
-              <div class="panel-sub">초기 설정 1회만 하면 바로 동작합니다.</div>
+          <div class="board-table-wrap">
+            <table class="board-table" aria-label="게시글 목록">
+              <thead>
+                <tr>
+                  <th class="col-no">번호</th>
+                  <th class="col-title">제목</th>
+                  <th class="col-writer">작성자</th>
+                  <th class="col-time">시간</th>
+                  <th class="col-views">조회</th>
+                  <th class="col-up">추천</th>
+                </tr>
+              </thead>
+              <tbody id="postTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="board-footer">
+            <div class="hint">
+              <span class="dot"></span>
+              인기글은 최근 72시간 기준(추천/조회 점수)으로 노출됩니다.
             </div>
-            <div class="guide">
-              <ol>
-                <li><code>config.js</code>에 Supabase URL / anon key 입력</li>
-                <li>Supabase에서 <code>supabase/schema.sql</code> 실행</li>
-                <li>Storage 버킷 <b>community-images</b> 생성(공개 bucket)</li>
-              </ol>
-              <div class="guide-note">
-                * 기본값: <b>이메일 매직링크 로그인</b>
-              </div>
-            </div>
+          </div>
+        </div>
+
+        <div class="community-panel" style="margin-top:14px;">
+          <div class="panel-head">
+            <div class="panel-title">Supabase 설정</div>
+            <div class="panel-sub">초기 설정 1회만 하면 끝</div>
+          </div>
+          <div class="guide">
+            <ol>
+              <li><code>config.js</code>에 Supabase URL / publishable key 입력</li>
+              <li>Supabase SQL Editor에서 <code>supabase/schema_v2.sql</code> 실행</li>
+              <li>Storage 버킷 <b>community-images</b> 생성(공개 bucket)</li>
+              <li>Authentication → URL Configuration에 <code>https://ino-eight.vercel.app</code> 등록</li>
+            </ol>
           </div>
         </div>
 
