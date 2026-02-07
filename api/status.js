@@ -11,6 +11,16 @@ function pickTwitter(html){
   return m ? m[1] : null;
 }
 
+function normalizeUrl(u){
+  if(!u) return null;
+  let url = String(u).trim();
+  if(!url) return null;
+  if(url.startsWith("//")) url = "https:" + url;
+  // Some station pages return relative paths
+  if(url.startsWith("/")) url = "https://www.sooplive.co.kr" + url;
+  return url;
+}
+
 async function fetchStationProfileImage(id){
   const url = `https://www.sooplive.co.kr/station/${encodeURIComponent(id)}`;
   const res = await fetch(url, {
@@ -21,11 +31,33 @@ async function fetchStationProfileImage(id){
   });
   const html = await res.text();
 
-  let img = pickOg(html, "og:image") || pickTwitter(html) || null;
-  if(img && img.startsWith("//")) img = "https:" + img;
+  // 1) Most stable: og:image / twitter:image
+  let img = normalizeUrl(pickOg(html, "og:image") || pickTwitter(html));
 
-  // ignore offline placeholder
-  if(img && img.includes("blind_background.svg")) img = null;
+  // 2) Some stations return a placeholder image in og:image when offline
+  const isPlaceholder = (v) => !!v && /blind_background\.svg/i.test(v);
+  if(isPlaceholder(img)) img = null;
+
+  // 3) Fallback: try to locate a profile image field inside inline JSON/script
+  if(!img){
+    const patterns = [
+      /"profile_image"\s*:\s*"([^"]+)"/i,
+      /"profileImage"\s*:\s*"([^"]+)"/i,
+      /profile_image\s*=\s*"([^"]+)"/i,
+      /profileImage\s*=\s*"([^"]+)"/i,
+      /"station_profile_image"\s*:\s*"([^"]+)"/i,
+    ];
+    for(const p of patterns){
+      const m = html.match(p);
+      if(m){
+        const cand = normalizeUrl(m[1]);
+        if(cand && !isPlaceholder(cand)){
+          img = cand;
+          break;
+        }
+      }
+    }
+  }
 
   return img;
 }
@@ -91,11 +123,14 @@ export default async function handler(req, res) {
       ]);
 
       live = isLiveFromPlay(playHtml);
-      profileImage = pickOg(stationHtml, "og:image") || pickOg(playHtml, "og:image");
-      title = extractTitle(playHtml) || extractTitle(stationHtml);
 
+      // Always use station profile image for the circle avatar
+      profileImage = await fetchStationProfileImage(id);
+
+      // Title/viewers/thumb are only meaningful when LIVE
+      title = extractTitle(playHtml) || extractTitle(stationHtml);
       if (live) {
-        thumb = pickOg(playHtml, "og:image") || pickOg(stationHtml, "og:image");
+        thumb = normalizeUrl(pickOg(playHtml, "og:image") || pickOg(stationHtml, "og:image"));
         viewers = extractViewers(playHtml);
       }
     } catch (_) {}

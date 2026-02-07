@@ -39,47 +39,23 @@ const preview = document.getElementById("preview");
 const previewImg = document.getElementById("previewImg");
 const previewTitle = document.getElementById("previewTitle");
 const previewViewers = document.getElementById("previewViewers");
-const previewLive = preview.querySelector(".preview-live");
-let currentPreviewId = null;
+const previewLive = document.getElementById("previewLive");
 
-const PREVIEW_PLACEHOLDER = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#101214"/>
-      <stop offset="1" stop-color="#1b222a"/>
-    </linearGradient>
-  </defs>
-  <rect width="640" height="360" fill="url(#g)"/>
-  <circle cx="320" cy="160" r="46" fill="rgba(216,177,78,0.18)" stroke="rgba(216,177,78,0.55)" stroke-width="4"/>
-  <path d="M310 140 L356 160 L310 180 Z" fill="rgba(216,177,78,0.9)"/>
-  <text x="320" y="250" text-anchor="middle" font-family="Pretendard,system-ui,Segoe UI,Arial" font-size="22" fill="rgba(255,255,255,0.84)" font-weight="800">방송 준비중</text>
-  <text x="320" y="282" text-anchor="middle" font-family="Pretendard,system-ui,Segoe UI,Arial" font-size="14" fill="rgba(255,255,255,0.55)" font-weight="700">잠시 후 다시 확인해 주세요</text>
-</svg>`);
-
-function setPreviewContent(id){
-  const st = statusById[id] || {};
-  const liveOn = !!st.live;
-  preview.classList.toggle("is-live", liveOn);
-  preview.classList.toggle("is-offline", !liveOn);
-
-  if(previewLive) previewLive.textContent = liveOn ? "LIVE" : "방송 준비중";
-
-  const thumb = (liveOn && st.thumb) ? st.thumb : (st.thumb || PREVIEW_PLACEHOLDER);
-  // thumb이 없으면 placeholder, 있으면 사용 (나중에 API 붙이면 자동)
-  previewImg.src = thumb;
-
-  previewTitle.textContent = liveOn ? (st.title || "방송중") : "방송 준비중";
-
-  if(liveOn){
-    previewViewers.style.display = "inline";
-    previewViewers.textContent = st.viewers != null ? `${formatNumber(st.viewers)}명 시청` : "시청자 정보 없음";
-  }else{
-    previewViewers.style.display = "none";
-    previewViewers.textContent = "";
-  }
-}
-
+const OFFLINE_PREVIEW_SVG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360' viewBox='0 0 640 360'>
+    <defs>
+      <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+        <stop offset='0' stop-color='#121418'/>
+        <stop offset='1' stop-color='#242832'/>
+      </linearGradient>
+    </defs>
+    <rect width='640' height='360' fill='url(#g)'/>
+    <circle cx='320' cy='155' r='44' fill='rgba(216,177,78,0.15)' stroke='rgba(216,177,78,0.55)' stroke-width='4'/>
+    <path d='M312 136 L312 174 L344 155 Z' fill='rgba(216,177,78,0.85)'/>
+    <text x='320' y='260' text-anchor='middle' font-family='Arial, sans-serif' font-size='22' fill='rgba(255,255,255,0.9)'>방송 준비중</text>
+    <text x='320' y='290' text-anchor='middle' font-family='Arial, sans-serif' font-size='14' fill='rgba(255,255,255,0.55)'>HOVER 미리보기</text>
+  </svg>`
+)}`;
 
 const gridChairman = document.getElementById("grid-chairman");
 const gridExec = document.getElementById("grid-exec");
@@ -197,12 +173,20 @@ function openMemberModal(soopId){
 
 /** Hover preview */
 function onHoverEnter(e, id){
-  currentPreviewId = id;
+  const st = statusById[id];
+  if(!st) return;
   preview.classList.add("show");
   preview.setAttribute("aria-hidden", "false");
-
-  // API가 없어도 동작: 기본은 '방송 준비중' + placeholder
-  setPreviewContent(id);
+  const isLive = !!st.live;
+  if(previewLive){
+    previewLive.textContent = isLive ? "LIVE" : "OFF";
+    previewLive.classList.toggle("off", !isLive);
+  }
+  previewImg.src = (isLive && st.thumb) ? st.thumb : OFFLINE_PREVIEW_SVG;
+  previewTitle.textContent = isLive ? (st.title || "방송중") : "방송 준비중";
+  previewViewers.textContent = isLive
+    ? (st.viewers != null ? `${formatNumber(st.viewers)}명 시청` : "시청자 정보 없음")
+    : "—";
   onHoverMove(e);
 }
 function onHoverMove(e){
@@ -213,7 +197,6 @@ function onHoverMove(e){
   preview.style.transform = `translate(${x}px, ${y}px)`;
 }
 function onHoverLeave(){
-  currentPreviewId = null;
   preview.classList.remove("show");
   preview.setAttribute("aria-hidden", "true");
 }
@@ -229,10 +212,6 @@ async function hydrateVisible(){
 
     (data.items || []).forEach(item => {
       statusById[item.id] = item;
-      // Hover 중이면 최신 정보로 즉시 반영
-      if(preview.classList.contains("show") && currentPreviewId === item.id){
-        setPreviewContent(item.id);
-      }
       const liveEl = document.getElementById(`live_${item.id}`);
       const dotEl = document.getElementById(`dot_${item.id}`);
       if(liveEl) liveEl.classList.toggle("on", !!item.live);
